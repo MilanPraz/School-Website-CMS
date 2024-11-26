@@ -1,0 +1,57 @@
+#comment
+on:
+  push:
+    branches:
+      - main
+name: 🚀 Deploy website on push
+
+env:
+  ENV: "production"
+  NEXT_PUBLIC_BACKEND_URL: "https://server.consultadvance.com"
+  AUTH_KEY_SECRET: ${{vars.AUTH_KEY_SECRET}}
+  CLOUDFLARE_URL: ${{vars.CLOUDFLARE_URL}}
+  NEXT_PUBLIC_CLOUDINARY_API_KEY: ${{vars.NEXT_PUBLIC_CLOUDINARY_API_KEY}}
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_URL: ${{vars.NEXT_PUBLIC_CLOUDINARY_UPLOAD_URL}}
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{vars.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}}
+  NEXT_PUBLIC_ENCRYPTION_KEY: "15UKiV2hdD20Ptl4up9WmQtTclGwqohLQWZ9Oy5gjLc="
+  EMAIL_USER: ${{vars.EMAIL_USER}}
+  EMAIL_PASS: ${{vars.EMAIL_PASS}}
+  RECIPIENT_EMAIL: ${{vars.RECIPIENT_EMAIL}}
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 🖥 Use Node.js 21
+        uses: actions/setup-node@v2
+        with:
+          node-version: "21"
+
+      - name: 🔨 Build Project
+        run: |
+          npm install --force
+          npm run build
+
+      - name: 📂 Copy Build Files to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          source: ".next"
+          target: ~/school-website/
+
+      - name: ♻️ Restart the server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            cd ~/school-website &&
+            git pull &&
+            touch ~/school-website/tmp/restart.txt
